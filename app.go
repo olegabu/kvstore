@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	abcitypes "github.com/tendermint/tendermint/abci/types"
 	"github.com/dgraph-io/badger"
+	abcitypes "github.com/tendermint/tendermint/abci/types"
 )
 
 type KVStoreApplication struct {
@@ -95,7 +95,10 @@ func (app *KVStoreApplication) DeliverTx(req abcitypes.RequestDeliverTx) abcityp
 }
 
 func (app *KVStoreApplication) Commit() abcitypes.ResponseCommit {
-	app.currentBatch.Commit()
+	err := app.currentBatch.Commit()
+	if err != nil {
+		panic(err)
+	}
 	return abcitypes.ResponseCommit{Data: []byte{}}
 }
 
@@ -106,7 +109,7 @@ func (app *KVStoreApplication) Query(reqQuery abcitypes.RequestQuery) (resQuery 
 		if err != nil && err != badger.ErrKeyNotFound {
 			return err
 		}
-		if err == badger.ErrKeyNotFound {
+		if err == badger.ErrKeyNotFound || item == nil {
 			resQuery.Log = "does not exist"
 		} else {
 			return item.Value(func(val []byte) error {
